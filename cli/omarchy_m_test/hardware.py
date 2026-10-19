@@ -126,13 +126,25 @@ def _mac_first_boot(host: Host) -> dict | None:
     return _result(check, "pass", [*evidence, *said, done[-1], f"nothing left queued ({IMAGE_QUEUE} is gone)"])
 
 
+def _installed_as(system: System, name: str) -> str | None:
+    """The installed package standing for name: itself, or the Aurora build that replaces it."""
+    for candidate in (name, AURORA_REPLACEMENTS.get(name)):
+        if candidate in system.packages:
+            return candidate
+    return None
+
+
 def hardware_packages(system: System) -> dict:
     if not system.has_pacman:
         return _result("packages.hardware", "skip", ["pacman isn't available"])
-    # Each package is there as itself or as its Aurora build.
-    found = {name: next((n for n in (name, AURORA_REPLACEMENTS.get(name)) if n in system.packages), None) for name in HARDWARE_PACKAGES}
-    missing = [name for name, present in found.items() if present is None]
-    installed = ", ".join(f"{present} {system.packages[present]}" for present in found.values() if present)
+    missing, present = [], []
+    for name in HARDWARE_PACKAGES:
+        found = _installed_as(system, name)
+        if found:
+            present.append(found)
+        else:
+            missing.append(name)
+    installed = ", ".join(f"{name} {system.packages[name]}" for name in present)
     if missing:
         return _result("packages.hardware", "fail", [f"not installed: {', '.join(missing)}"] + ([f"installed: {installed}"] if installed else []))
     return _result("packages.hardware", "pass", [f"installed: {installed}"])
@@ -175,7 +187,7 @@ def gpu_vulkan(host: Host, system: System) -> dict:
     asahi = [name for name in icds if name.startswith("asahi_icd")]
     if not asahi:
         evidence = ["no Asahi Vulkan driver in /usr/share/vulkan/icd.d" + (f" (only {', '.join(icds)})" if icds else "")]
-        if system.has_pacman and not {"vulkan-asahi", "vulkan-aurora"} & set(system.packages):
+        if system.has_pacman and not _installed_as(system, "vulkan-asahi"):
             evidence.append("vulkan-asahi is not installed")
         return _result("gpu.vulkan", "fail", evidence)
     info = host.run(VULKANINFO)
