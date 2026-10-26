@@ -21,6 +21,9 @@
 #define H 1080u
 #define T 1024u
 #define MEMORY_LIMIT (64ull * 1024 * 1024)
+/* VkDriverId registry value; older Vulkan 1.3 headers predate its enum name.
+ * Keep the same strict Honeykrisp admission without requiring newer headers. */
+#define BENCH_DRIVER_ID_MESA_HONEYKRISP ((VkDriverId)26)
 static uint64_t live_bytes, peak_bytes, deadline;
 static bool initialized;
 static void die(const char *reason, int line) {
@@ -196,7 +199,7 @@ static bool native_base(const VkPhysicalDeviceProperties *properties) {
 static bool native_identity(const VkPhysicalDeviceProperties *properties,
                             const VkPhysicalDeviceDriverProperties *driver) {
   return native_base(properties) &&
-         driver->driverID == VK_DRIVER_ID_MESA_HONEYKRISP;
+         driver->driverID == BENCH_DRIVER_ID_MESA_HONEYKRISP;
 }
 static void init(struct context *c) {
   memset(c, 0, sizeof *c);
@@ -866,7 +869,7 @@ static void self_test(void) {
       .deviceName = "Apple M1 (G13G B1)"};
   VkPhysicalDeviceDriverProperties driver = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES,
-      .driverID = VK_DRIVER_ID_MESA_HONEYKRISP};
+      .driverID = BENCH_DRIVER_ID_MESA_HONEYKRISP};
   CHECK(native_identity(&properties, &driver));
   properties.vendorID = 0x106b;
   CHECK(!native_identity(&properties, &driver));
@@ -875,7 +878,7 @@ static void self_test(void) {
   CHECK(!native_identity(&properties, &driver));
   driver.driverID = VK_DRIVER_ID_MESA_LLVMPIPE;
   CHECK(!native_identity(&properties, &driver));
-  driver.driverID = VK_DRIVER_ID_MESA_HONEYKRISP;
+  driver.driverID = BENCH_DRIVER_ID_MESA_HONEYKRISP;
   properties.deviceType = VK_PHYSICAL_DEVICE_TYPE_CPU;
   CHECK(!native_identity(&properties, &driver));
   properties.deviceType = VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
