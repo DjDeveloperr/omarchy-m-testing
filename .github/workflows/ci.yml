@@ -22,6 +22,26 @@ jobs:
         working-directory: cli
         run: python -m unittest discover -s tests -t . -v
 
+  gpu-native:
+    name: GPU helper compile and CPU-only guards
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build dependencies (CI only)
+        run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config libvulkan-dev glslang-tools spirv-tools
+      - name: Compile C and validate SPIR-V; no GPU invocation
+        run: |
+          cli/scripts/build_gpu_benchmark.sh "$RUNNER_TEMP/gpu-helper"
+          "$RUNNER_TEMP/gpu-helper/gpu-benchmark-vulkan" --host-self-test
+      - name: Preserve compile-only helper receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpu-helper-${{ matrix.os }}
+          path: ${{ runner.temp }}/gpu-helper/
+
   installer:
     name: Installer
     runs-on: ubuntu-latest
@@ -53,7 +73,7 @@ jobs:
           python-version: "3.13"
       - run: pip install check-jsonschema==0.33.0
       - name: Schema is valid draft 2020-12
-        run: check-jsonschema --check-metaschema schema/report-v*.schema.json
+        run: check-jsonschema --check-metaschema schema/*.schema.json
       - name: Golden reports validate
         run: check-jsonschema --schemafile schema/report-v1.schema.json schema/golden/*.json schema/golden/signed/*.json schema/golden/benchmarks/*.json
 

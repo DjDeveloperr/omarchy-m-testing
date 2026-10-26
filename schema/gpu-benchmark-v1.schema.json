@@ -1,0 +1,1240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omarchy-m-testing.org/schema/gpu-benchmark-v1.schema.json",
+  "title": "Offline versioned GPU benchmark document",
+  "description": "Privacy-safe separate document, integer-only and machine-signed; never a hardware compatibility or CTS report.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "document_type": {
+      "const": "gpu-benchmark"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "suite": {
+      "const": 1
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "omarchy-m-test"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+([.+-][0-9A-Za-z.+-]+)?$"
+        }
+      }
+    },
+    "machine": {
+      "description": "What the Mac is. Model and chip come from the device tree, never from serial numbers or other per-unit identifiers.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model",
+        "board",
+        "soc",
+        "chip",
+        "arch",
+        "kernel"
+      ],
+      "properties": {
+        "model": {
+          "description": "Device-tree model string, e.g. \"Apple MacBook Pro (16-inch, M2 Max, 2023)\".",
+          "type": "string",
+          "pattern": "^Apple ",
+          "maxLength": 120
+        },
+        "board": {
+          "description": "Board id from the device-tree compatible list, e.g. \"j416c\".",
+          "type": "string",
+          "pattern": "^j[0-9]{3}[a-z]{0,2}$"
+        },
+        "soc": {
+          "description": "SoC id from the device-tree compatible list, e.g. \"t6021\".",
+          "type": "string",
+          "pattern": "^t[0-9]{4}$"
+        },
+        "chip": {
+          "description": "Marketing chip name for the SoC, e.g. \"M2 Max\" or \"A18 Pro\"; \"unknown\" when the SoC isn't known yet.",
+          "type": "string",
+          "pattern": "^((M|A)[0-9]+( Pro| Max| Ultra)?|unknown)$"
+        },
+        "arch": {
+          "const": "aarch64"
+        },
+        "kernel": {
+          "description": "Kernel release (uname -r).",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      }
+    },
+    "stack": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "packages": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "enum": [
+                  "mesa",
+                  "mesa-aurora",
+                  "vulkan-asahi",
+                  "vulkan-aurora",
+                  "linux-aurora",
+                  "linux-asahi",
+                  "m1n1-aurora"
+                ]
+              },
+              "version": {
+                "type": "string",
+                "pattern": "^[0-9A-Za-z][0-9A-Za-z.+~:_-]{0,149}$"
+              }
+            },
+            "required": [
+              "name",
+              "version"
+            ]
+          }
+        },
+        "firmware": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "system": {
+              "type": "string",
+              "pattern": "^[0-9A-Za-z][0-9A-Za-z.+~:_-]{0,149}$"
+            },
+            "os": {
+              "type": "string",
+              "pattern": "^[0-9A-Za-z][0-9A-Za-z.+~:_-]{0,149}$"
+            },
+            "m1n1_stage2": {
+              "type": "string",
+              "pattern": "^[0-9A-Za-z][0-9A-Za-z.+~:_-]{0,149}$"
+            }
+          },
+          "required": []
+        },
+        "config_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "packages",
+        "firmware"
+      ]
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "warmups": {
+          "const": 2
+        },
+        "repetitions": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 31
+        },
+        "order_seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000000
+        },
+        "declared_boot_block": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1024
+        },
+        "boot_independence": {
+          "const": "operator-declared-not-verified"
+        },
+        "cooldown_target_mc": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000000
+        },
+        "temperature_stop_mc": {
+          "const": 85000
+        },
+        "cache_policy": {
+          "const": "new-empty-private-cache-per-helper"
+        },
+        "quantiles": {
+          "const": "R7-rounded-integer"
+        },
+        "uncertainty": {
+          "const": "within-session-spread-only"
+        },
+        "api_scope": {
+          "const": "native-vulkan-1.2-offscreen"
+        },
+        "multi_queue": {
+          "const": "not-tested"
+        },
+        "vm_teardown": {
+          "const": "not-isolated"
+        },
+        "upload": {
+          "const": "never"
+        }
+      },
+      "required": [
+        "warmups",
+        "repetitions",
+        "order_seed",
+        "declared_boot_block",
+        "api_scope",
+        "upload"
+      ]
+    },
+    "controls": {
+      "type": "array",
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "negative": {
+            "type": "boolean"
+          },
+          "phase": {
+            "enum": [
+              "warmup",
+              "measured"
+            ]
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000000000000
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000000000000
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "fail",
+              "unsupported",
+              "guard-inconclusive"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,79}$"
+          },
+          "identity": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocol": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "suite": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "vendor_id": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "device_id": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "device_type": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "driver_id": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "api_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "driver_version": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "timestamp_bits": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "timestamp_period_ps": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "device_name": {
+                "type": "string",
+                "pattern": "^Apple (M[0-9]+( Pro| Max| Ultra)?|A[0-9]+( Pro)?) \\([A-Z][A-Z0-9]+ [A-Z][0-9]+\\)$"
+              },
+              "source_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "required": []
+          },
+          "measurements": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "mismatches": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "width": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "operations": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "record_ns": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "submit_wait_ns": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "thread_cpu_ns": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "gpu_timestamp_ns": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "gpu_timestamp_queries": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "bo_lifetime_ns": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "owned_bytes_peak": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "gpu_timestamp_status": {
+                "enum": [
+                  "supported",
+                  "unsupported"
+                ]
+              }
+            },
+            "required": []
+          },
+          "helper_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "driver_libraries": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "role": {
+                  "enum": [
+                    "loader",
+                    "implementation"
+                  ]
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "role",
+                "sha256"
+              ]
+            }
+          },
+          "before": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "temperatures_mc": {
+                "type": "array",
+                "maxItems": 128,
+                "items": {
+                  "type": "integer",
+                  "minimum": -20000,
+                  "maximum": 125000
+                }
+              },
+              "cpu_frequency_khz": {
+                "type": "array",
+                "maxItems": 128,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000000000
+                }
+              },
+              "devfreq_hz": {
+                "type": "array",
+                "maxItems": 128,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000000000
+                }
+              },
+              "ac": {
+                "enum": [
+                  "online",
+                  "offline",
+                  "unknown"
+                ]
+              },
+              "memory_total_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "memory_available_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              }
+            },
+            "required": []
+          },
+          "after": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "temperatures_mc": {
+                "type": "array",
+                "maxItems": 128,
+                "items": {
+                  "type": "integer",
+                  "minimum": -20000,
+                  "maximum": 125000
+                }
+              },
+              "cpu_frequency_khz": {
+                "type": "array",
+                "maxItems": 128,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000000000
+                }
+              },
+              "devfreq_hz": {
+                "type": "array",
+                "maxItems": 128,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000000000
+                }
+              },
+              "ac": {
+                "enum": [
+                  "online",
+                  "offline",
+                  "unknown"
+                ]
+              },
+              "memory_total_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "memory_available_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              }
+            },
+            "required": []
+          },
+          "health_samples": {
+            "type": "array",
+            "maxItems": 200,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "temperatures_mc": {
+                  "type": "array",
+                  "maxItems": 128,
+                  "items": {
+                    "type": "integer",
+                    "minimum": -20000,
+                    "maximum": 125000
+                  }
+                },
+                "cpu_frequency_khz": {
+                  "type": "array",
+                  "maxItems": 128,
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000000000000
+                  }
+                },
+                "devfreq_hz": {
+                  "type": "array",
+                  "maxItems": 128,
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000000000000
+                  }
+                },
+                "ac": {
+                  "enum": [
+                    "online",
+                    "offline",
+                    "unknown"
+                  ]
+                },
+                "memory_total_bytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000000000
+                },
+                "memory_available_bytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000000000
+                }
+              },
+              "required": []
+            }
+          },
+          "kernel_fault_log_available": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status",
+          "reason"
+        ]
+      }
+    },
+    "schedule": {
+      "type": "array",
+      "maxItems": 240,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "workload": {
+            "enum": [
+              "raster",
+              "texture",
+              "compute",
+              "copy",
+              "submit-single",
+              "submit-batched",
+              "bo-lifetime"
+            ]
+          },
+          "phase": {
+            "enum": [
+              "warmup",
+              "measured"
+            ]
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000000000000
+          }
+        },
+        "required": [
+          "workload",
+          "phase",
+          "index"
+        ]
+      }
+    },
+    "status": {
+      "enum": [
+        "pass",
+        "fail",
+        "unsupported",
+        "guard-inconclusive"
+      ]
+    },
+    "cases": {
+      "type": "array",
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "workload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "enum": [
+                  "raster",
+                  "texture",
+                  "compute",
+                  "copy",
+                  "submit-single",
+                  "submit-batched",
+                  "bo-lifetime"
+                ]
+              },
+              "api": {
+                "const": "vulkan"
+              },
+              "revision": {
+                "const": 1
+              },
+              "operations": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "width": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "texture_width": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "texture_height": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "texture_fetches_per_fragment": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "submissions": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "draws_per_submission": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "buffer_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "logical_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "dispatches_per_submission": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000000
+              },
+              "format": {
+                "const": "rgba8-unorm"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "blend": {
+                "const": "add-one-one"
+              },
+              "oracle": {
+                "const": "full-image-integer-seed-v1-tolerance1"
+              }
+            },
+            "required": [
+              "id",
+              "api",
+              "revision",
+              "operations",
+              "sha256"
+            ]
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "fail",
+              "unsupported",
+              "guard-inconclusive"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,79}$"
+          },
+          "runs": {
+            "type": "array",
+            "maxItems": 33,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "negative": {
+                  "type": "boolean"
+                },
+                "phase": {
+                  "enum": [
+                    "warmup",
+                    "measured"
+                  ]
+                },
+                "index": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000000000
+                },
+                "sequence": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000000000
+                },
+                "status": {
+                  "enum": [
+                    "pass",
+                    "fail",
+                    "unsupported",
+                    "guard-inconclusive"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{0,79}$"
+                },
+                "identity": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "protocol": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "suite": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "vendor_id": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "device_id": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "device_type": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "driver_id": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "api_version": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "driver_version": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "timestamp_bits": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "timestamp_period_ps": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "device_name": {
+                      "type": "string",
+                      "pattern": "^Apple (M[0-9]+( Pro| Max| Ultra)?|A[0-9]+( Pro)?) \\([A-Z][A-Z0-9]+ [A-Z][0-9]+\\)$"
+                    },
+                    "source_sha256": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    }
+                  },
+                  "required": []
+                },
+                "measurements": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "mismatches": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "width": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "height": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "operations": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "record_ns": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "submit_wait_ns": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "thread_cpu_ns": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "gpu_timestamp_ns": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "gpu_timestamp_queries": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "bo_lifetime_ns": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "owned_bytes_peak": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "gpu_timestamp_status": {
+                      "enum": [
+                        "supported",
+                        "unsupported"
+                      ]
+                    }
+                  },
+                  "required": []
+                },
+                "helper_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "driver_libraries": {
+                  "type": "array",
+                  "maxItems": 8,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "role": {
+                        "enum": [
+                          "loader",
+                          "implementation"
+                        ]
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      }
+                    },
+                    "required": [
+                      "role",
+                      "sha256"
+                    ]
+                  }
+                },
+                "before": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "temperatures_mc": {
+                      "type": "array",
+                      "maxItems": 128,
+                      "items": {
+                        "type": "integer",
+                        "minimum": -20000,
+                        "maximum": 125000
+                      }
+                    },
+                    "cpu_frequency_khz": {
+                      "type": "array",
+                      "maxItems": 128,
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000000000000000
+                      }
+                    },
+                    "devfreq_hz": {
+                      "type": "array",
+                      "maxItems": 128,
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000000000000000
+                      }
+                    },
+                    "ac": {
+                      "enum": [
+                        "online",
+                        "offline",
+                        "unknown"
+                      ]
+                    },
+                    "memory_total_bytes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "memory_available_bytes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    }
+                  },
+                  "required": []
+                },
+                "after": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "temperatures_mc": {
+                      "type": "array",
+                      "maxItems": 128,
+                      "items": {
+                        "type": "integer",
+                        "minimum": -20000,
+                        "maximum": 125000
+                      }
+                    },
+                    "cpu_frequency_khz": {
+                      "type": "array",
+                      "maxItems": 128,
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000000000000000
+                      }
+                    },
+                    "devfreq_hz": {
+                      "type": "array",
+                      "maxItems": 128,
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000000000000000
+                      }
+                    },
+                    "ac": {
+                      "enum": [
+                        "online",
+                        "offline",
+                        "unknown"
+                      ]
+                    },
+                    "memory_total_bytes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "memory_available_bytes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    }
+                  },
+                  "required": []
+                },
+                "health_samples": {
+                  "type": "array",
+                  "maxItems": 200,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "temperatures_mc": {
+                        "type": "array",
+                        "maxItems": 128,
+                        "items": {
+                          "type": "integer",
+                          "minimum": -20000,
+                          "maximum": 125000
+                        }
+                      },
+                      "cpu_frequency_khz": {
+                        "type": "array",
+                        "maxItems": 128,
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000000000000
+                        }
+                      },
+                      "devfreq_hz": {
+                        "type": "array",
+                        "maxItems": 128,
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000000000000
+                        }
+                      },
+                      "ac": {
+                        "enum": [
+                          "online",
+                          "offline",
+                          "unknown"
+                        ]
+                      },
+                      "memory_total_bytes": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000000000000000
+                      },
+                      "memory_available_bytes": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000000000000000
+                      }
+                    },
+                    "required": []
+                  }
+                },
+                "kernel_fault_log_available": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "status",
+                "reason"
+              ]
+            }
+          },
+          "metrics": {
+            "type": "array",
+            "maxItems": 5,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "enum": [
+                    "record_ns",
+                    "submit_wait_ns",
+                    "thread_cpu_ns",
+                    "bo_lifetime_ns",
+                    "gpu_timestamp_ns"
+                  ]
+                },
+                "unit": {
+                  "const": "ns"
+                },
+                "direction": {
+                  "const": "lower"
+                },
+                "status": {
+                  "enum": [
+                    "measured",
+                    "unsupported"
+                  ]
+                },
+                "statistics": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "n": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "median": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "q1": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "q3": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "iqr": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "minimum": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "maximum": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "mad": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000000
+                    },
+                    "raw": {
+                      "type": "array",
+                      "maxItems": 31,
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000000000000000
+                      }
+                    }
+                  },
+                  "required": []
+                }
+              },
+              "required": [
+                "id",
+                "unit",
+                "direction",
+                "status",
+                "statistics"
+              ]
+            }
+          }
+        },
+        "required": [
+          "workload",
+          "status",
+          "reason",
+          "runs",
+          "metrics"
+        ]
+      }
+    },
+    "signature": {
+      "description": "The machine key's signature, which the site requires. The CLI creates an ed25519 key on the Mac's first run and signs every report with it (ssh-keygen -Y sign, namespace omarchy-m-test-report) over the report's canonical form: the report without this member, as JSON with keys sorted, no whitespace and non-ASCII characters as UTF-8. The site verifies it and groups reports by a keyed digest of the public key; neither the key nor the signature is shown or exported.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "public_key",
+        "signature"
+      ],
+      "properties": {
+        "public_key": {
+          "description": "The OpenSSH public key, without a comment.",
+          "type": "string",
+          "pattern": "^ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI[A-Za-z0-9+/]{43}$"
+        },
+        "signature": {
+          "description": "The armored SSH signature, as ssh-keygen -Y sign prints it.",
+          "type": "string",
+          "pattern": "^-----BEGIN SSH SIGNATURE-----\\n[A-Za-z0-9+/=\\n]+\\n-----END SSH SIGNATURE-----$",
+          "maxLength": 1000
+        }
+      }
+    }
+  },
+  "required": [
+    "document_type",
+    "schema_version",
+    "suite",
+    "tool",
+    "machine",
+    "stack",
+    "protocol",
+    "controls",
+    "schedule",
+    "status",
+    "cases"
+  ]
+}

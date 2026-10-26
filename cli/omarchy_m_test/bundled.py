@@ -34,6 +34,7 @@ SCRIPTS = {
     "apple-audio-check": os.path.join(VENDOR, "apple-audio-check.sh"),
     "apple-display-check": os.path.join(VENDOR, "apple-display-check.sh"),
     "video-card": os.path.join(TESTCARD, "video-card.sh"),  # with testcard.lua beside it
+    "gpu-benchmark": os.path.join(_PACKAGE,"gpu_native","run.sh"),
 }
 
 
@@ -52,6 +53,12 @@ def catalogue_text() -> bytes:
             with open(path, "rb") as f:
                 return f.read()
     raise FileNotFoundError("the feature catalogue isn't installed next to omarchy-m-test")
+
+
+def gpu_document_schema() -> bytes:
+    """The tool's own separate benchmark schema; never user configuration."""
+    with open(os.path.join(_PACKAGE,"gpu_native","report.schema.json"),"rb") as f:
+        return f.read()
 
 
 def asahi_kernel_config() -> tuple[bytes, bytes]:

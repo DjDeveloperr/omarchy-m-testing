@@ -1,0 +1,14 @@
+#version 450
+layout(local_size_x=64) in;
+layout(set=0,binding=0,std430) buffer Output { uint value[]; } output_data;
+layout(push_constant) uniform Params { uint seed; uint count; } p;
+void main() {
+    uint i=gl_GlobalInvocationID.x;
+    if (i>=p.count) return;
+    uint v=i^p.seed;
+    for (uint n=0;n<32;n++) {
+        v=v*1664525u+1013904223u;
+        v^=(v>>13)|(v<<19);
+    }
+    output_data.value[i]=v;
+}

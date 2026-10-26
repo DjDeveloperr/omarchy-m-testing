@@ -24,9 +24,25 @@ install -m 0644 "$repo/catalogue/catalogue.json" "$root/omarchy_m_test/catalogue
 mkdir -p "$root/omarchy_m_test/asahi-kernel"
 install -m 0644 "$repo/catalogue/asahi-kernel/source.json" "$repo/catalogue/asahi-kernel/config" "$root/omarchy_m_test/asahi-kernel/"
 # Vendored check scripts and the video test card script (omarchy_m_test/bundled.py runs them), modes kept.
-(cd "$repo/cli/omarchy_m_test" && find vendor testcard -type f | sort | while read -r f; do
+(cd "$repo/cli/omarchy_m_test" && find vendor testcard gpu_native -type f ! -name '*.pyc' ! -path '*/__pycache__/*' ! -path '*/bin/*' | sort | while read -r f; do
   install -D -m "$([[ -x $f ]] && echo 0755 || echo 0644)" "$f" "$root/omarchy_m_test/$f"
 done)
+# Native helper inclusion is explicit; source-only archives report it unsupported.
+# Release CI builds one AArch64 helper, not a compiler/install step on users' Macs.
+if [[ -n ${OMARCHY_GPU_BINARY_DIR:-} ]]; then
+  python3 - "$OMARCHY_GPU_BINARY_DIR" "$repo/cli/omarchy_m_test/gpu_native" <<'PY'
+import hashlib,json,pathlib,struct,sys
+base=pathlib.Path(sys.argv[1]);p=base/'gpu-benchmark-vulkan';b=p.read_bytes();j=json.loads((base/'gpu-benchmark-build.json').read_text())
+assert b[:6]==b'\x7fELF\x02\x01' and struct.unpack_from('<H',b,18)[0]==183,'release helper must be AArch64'
+assert hashlib.sha256(b).hexdigest()==j['executable_sha256'] and j['suite']==1
+src=pathlib.Path(sys.argv[2]);names=['benchmark.c','compute.comp','fullscreen.vert','raster.frag','texture.frag']
+sources={name:hashlib.sha256((src/name).read_bytes()).hexdigest() for name in names}
+assert sources==j['sources'],'helper was built from different packaged sources'
+assert hashlib.sha256(json.dumps(sources,sort_keys=True,separators=(',',':')).encode()).hexdigest()==j['source_sha256']
+PY
+  install -Dm755 "$OMARCHY_GPU_BINARY_DIR/gpu-benchmark-vulkan" "$root/omarchy_m_test/gpu_native/bin/gpu-benchmark-vulkan"
+  install -Dm644 "$OMARCHY_GPU_BINARY_DIR/gpu-benchmark-build.json" "$root/omarchy_m_test/gpu_native/bin/gpu-benchmark-build.json"
+fi
 printf '%s\n' "$version" > "$root/VERSION"
 
 # Reproducible: fixed order, owners and times.

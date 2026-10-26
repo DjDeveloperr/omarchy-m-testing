@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,6 +28,12 @@ jobs:
         run: |
           python cli/scripts/check_boundary.py
           (cd cli && python -m unittest discover -s tests -t .)
+      - name: Build the versioned native GPU helper (no GPU execution)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential pkg-config libvulkan-dev glslang-tools spirv-tools
+          cli/scripts/build_gpu_benchmark.sh "$RUNNER_TEMP/gpu-benchmark"
+          echo "OMARCHY_GPU_BINARY_DIR=$RUNNER_TEMP/gpu-benchmark" >> "$GITHUB_ENV"
       - name: Check the tarball's contents
         run: release/check.sh
       - name: Build

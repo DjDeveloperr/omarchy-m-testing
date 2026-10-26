@@ -35,3 +35,7 @@ To check a download by hand:
 - **Smoke test** against production: `release/smoke.sh` (install, `--dry-run`, upload a golden report, delete it).
 
 The spec is in this repo's issues.
+
+## GPU benchmarking (unreleased)
+
+The opt-in `--gpu-benchmark` mode runs seven fixed offscreen Vulkan workloads with full CPU correctness controls, repeated raw measurements and a separate local document with optional machine signing. It requires a reviewed AArch64 native helper; a source-only archive reports it unsupported. It never installs packages, uploads results or changes the normal hardware report. See [protocol, limitations and build instructions](docs/benchmarks/gpu-v1.md).
