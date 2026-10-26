@@ -32,7 +32,7 @@ while read -r f; do
   cmp -s "$repo/cli/omarchy_m_test/$f" "$pkg/$f" || fail "$f missing or different"
   if [[ -x $repo/cli/omarchy_m_test/$f && ! -x $pkg/$f ]]; then fail "$f lost its executable bit"; fi
   count=$((count + 1))
-done < <(cd "$repo/cli/omarchy_m_test" && find vendor testcard -type f | sort)
+done < <(cd "$repo/cli/omarchy_m_test" && find vendor testcard gpu_native -type f ! -name '*.pyc' ! -path '*/__pycache__/*' ! -path '*/bin/*' | sort)
 (( count > 0 )) || fail "no vendored files found in the source tree"
 
 # The unpacked CLI resolves its own data, not the repository's.
@@ -47,5 +47,6 @@ for name in bundled.SCRIPTS:
     path = bundled.script_path(name)
     assert path.startswith(os.path.realpath(sys.argv[1])) or path.startswith(sys.argv[1]), path
 assert os.path.isfile(os.path.join(os.path.dirname(bundled.script_path("video-card")), "testcard.lua"))
+assert bundled.gpu_document_schema()
 PY
-echo "release ok: launcher, $(ls "$pkg"/*.py | wc -l | tr -d ' ') modules, catalogue, Asahi kernel config and $count vendored and test card files"
+echo "release ok: launcher, $(ls "$pkg"/*.py | wc -l | tr -d ' ') modules, catalogue, Asahi kernel config and $count vendored, test card and GPU source/data files"

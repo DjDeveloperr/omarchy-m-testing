@@ -72,6 +72,13 @@ def _parse(argv: Sequence[str], host: Host) -> argparse.Namespace:
     parser.add_argument("--sign-out", action="store_true", help="testers: unlink this Mac from its GitHub handle; its later runs are community runs. Runs no checks")
     parser.add_argument("--status", action="store_true", help="show whether this Mac is signed in as a tester, and as whom. Runs no checks")
     parser.add_argument("--version", action="version", version=f"{TOOL_NAME} {TOOL_VERSION}")
+    gpu=parser.add_mutually_exclusive_group()
+    gpu.add_argument("--gpu-benchmark",action="store_true",help="GPU-only versioned experiment; saves a separate local signed document and never uploads")
+    gpu.add_argument("--gpu-compare",nargs=2,metavar=("LEFT","RIGHT"),help="compare two saved GPU experiment documents without running checks")
+    parser.add_argument("--benchmark-repetitions",type=int,default=7,help="GPU measured repetitions,5–31 (default7), after two discarded warmups")
+    parser.add_argument("--benchmark-block",type=int,default=1,help="anonymous operator-declared independent boot-block number,1–1024; this tool never reboots")
+    parser.add_argument("--benchmark-seed",type=int,default=0,help="reproducible interleaved workload-order seed")
+    parser.add_argument("--accept-gpu-risk",action="store_true",help="explicitly accept GPU benchmark load without an interactive prompt; use only with saved work and recovery available")
     return parser.parse_args(list(argv))
 
 
@@ -81,6 +88,12 @@ def main(argv: Sequence[str], host: Host, sections: Sequence[Section] = APPLE) -
         args = _parse(argv, host)
     except _Exit as done:
         return done.status
+
+    if args.gpu_benchmark or args.gpu_compare:
+        from . import gpu_benchmark
+        # Dedicated mode cannot fall through to hardware/disruptive sections,
+        # online update notices, tester sign-in or the upload path.
+        return gpu_benchmark.cli(args,Guarded(host))
 
     if args.sign_in:
         return tester.sign_in(Guarded(host), args.site.rstrip("/"))
