@@ -11,7 +11,9 @@ class MatrixCell
   attr_reader :tallies, :tester_tallies, :reports
 
   # reports: oldest first, all on the same configuration. only_testers: count tester runs only.
-  def self.from(reports, feature_id, only_testers: false)
+  def self.from(reports, feature_id, only_testers: false, per_check: false)
+    return from_checks(reports, feature_id, only_testers:) if per_check
+
     latest = {} # machine => [state, tester run?], from its latest report that tested the feature
     tested = []
     reports.each do |report|
@@ -27,11 +29,41 @@ class MatrixCell
     new(latest.values.map(&:first).tally, tested.reverse, latest.values.select(&:last).map(&:first).tally)
   end
 
-  def initialize(tallies, reports, tester_tallies = {}, hidden: false)
+  # Across builds, a partial retest must retain the outcomes of individual skipped checks.
+  def self.from_checks(reports, feature_id, only_testers:)
+    latest = Hash.new { |hash, machine| hash[machine] = {} }
+    tested = []
+    reports.each do |report|
+      next if only_testers && !report.tester?
+
+      checks = report.counted_checks.select do |check|
+        check.dig("classification", "feature") == feature_id && check["status"] != "skip" &&
+          check.dig("classification", "outcome") != "not-tested"
+      end
+      next if checks.empty?
+
+      tested << report
+      checks.each { |check| latest[report.machine_key][check["id"]] = [ check.dig("classification", "outcome"), report ] }
+    end
+    votes = latest.values.map do |checks|
+      sources = checks.values.map(&:last).uniq.sort_by(&:upload_order).reverse
+      state = ResultState.combine(checks.values.map(&:first))
+      state = "regression" if state == "fails" && sources.first.regressed_from(feature_id)
+      [ state, sources.all?(&:tester?), sources ]
+    end
+    tester_votes = votes.select { |_, tester, _| tester }
+    contributing = tester_votes.any? ? tester_votes : votes
+    sources = contributing.flat_map(&:last).uniq.sort_by(&:upload_order).reverse
+    new(votes.map(&:first).tally, tested.reverse, tester_votes.map(&:first).tally, sources:)
+  end
+  private_class_method :from_checks
+
+  def initialize(tallies, reports, tester_tallies = {}, hidden: false, sources: nil)
     @tallies = tallies
     @reports = reports
     @tester_tallies = tester_tallies
     @hidden = hidden
+    @sources = sources
   end
 
   # Hidden by the confirmed-only filter (ReportFilter): what community machines don't agree on yet.
@@ -43,6 +75,15 @@ class MatrixCell
   def machines = tallies.values.sum
   def tester_machines = tester_tallies.values.sum
   def tester? = tester_tallies.any?
+
+  # The contributing reports, including checks retained from earlier runs in a model summary.
+  # When tester runs decide the state, community reports cannot claim its provenance.
+  def sources
+    return @sources if @sources
+
+    latest = reports.uniq(&:machine_key)
+    tester? ? latest.select(&:tester?) : latest
+  end
 
   # The colour state, or nil while the community reports don't agree yet.
   def state
@@ -91,6 +132,9 @@ class MatrixCell
       "community, unconfirmed: #{describe(tallies, "machine")}; colours once #{AGREEMENT} machines agree or a tester confirms"
     end
   end
+
+  # Each state's machine count, without the verdict ("2 machines works, 1 machine fails").
+  def counts = describe(tester? ? tester_tallies : tallies, tester? ? "tester machine" : "machine")
 
   private
 

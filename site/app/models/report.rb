@@ -91,9 +91,10 @@ class Report < ApplicationRecord
   end
 
   # Model x stack/version x build: one row of the compatibility matrix.
-  # by_build: false merges the builds of one release ("converged 4.0.0").
-  def configuration(by_build: true)
-    Configuration.new(board:, stack:, version: omarchy_version, build: (build&.words if by_build), build_id: (build&.id if by_build))
+  # by_build: false merges the builds of one release; by_model: true also merges releases, keeping stacks separate.
+  def configuration(by_build: true, by_model: false)
+    by_build = false if by_model
+    Configuration.new(board:, stack:, version: (omarchy_version unless by_model), build: (build&.words if by_build), build_id: (build&.id if by_build))
   end
 
   # The machine this report counts as for agreement between machines.

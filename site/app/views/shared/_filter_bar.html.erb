@@ -15,16 +15,18 @@
         </select>
       </label>
     <% end %>
-    <% %w[from to].each do |key| %>
+    <% (keys & %w[from to]).each do |key| %>
       <label class="filter-field">
         <span>uploaded <%= key %></span>
         <input type="date" name="<%= key %>" value="<%= filter[key] %>" data-filter="<%= key %>">
       </label>
     <% end %>
-    <label class="filter-field filter-check">
-      <input type="checkbox" name="confirmed" value="1"<%= " checked" if filter.confirmed? %> data-filter="confirmed">
-      <span>confirmed only</span>
-    </label>
+    <% if keys.include?("confirmed") %>
+      <label class="filter-field filter-check">
+        <input type="checkbox" name="confirmed" value="1"<%= " checked" if filter.confirmed? %> data-filter="confirmed">
+        <span>confirmed only</span>
+      </label>
+    <% end %>
   </div>
   <div class="filter-actions">
     <button type="submit" class="button button-small">filter</button>

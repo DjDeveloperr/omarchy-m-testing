@@ -1,0 +1,22 @@
+<%# locals: (row:, features:, summary: false, history: false, toggle_id: nil, builds_count: 0) %>
+<tr class="matrix-row<%= " model-summary" if summary %><%= " build-row" if history %>" data-board="<%= row.configuration.board %>" data-stack="<%= row.configuration.stack %>" data-version="<%= row.configuration.version %>" data-build="<%= row.configuration.build_id %>">
+  <th class="row-head" scope="row">
+    <% if history %>
+      <a href="<%= reports_path(model: row.configuration.board, stack: row.configuration.stack, release: row.configuration.version, build: row.configuration.build) %>"><%= row.configuration.release_label %></a>
+      <span class="row-meta"><%= pluralize(row.reports.size, "report") %></span>
+    <% else %>
+      <a href="<%= model_path(row.configuration.board) %>"><%= row.model_name %></a>
+      <span class="row-meta"><%= row.configuration.release_label %> · <%= pluralize(row.reports.size, "report") %></span>
+    <% end %>
+    <% if row.configuration.build %><span class="row-meta row-build">build <%= row.configuration.build %></span><% end %>
+    <% if toggle_id %>
+      <button class="model-toggle" type="button" hidden aria-expanded="true" aria-controls="<%= toggle_id %>" data-build-count="<%= builds_count %>">Hide builds (<%= builds_count %>)</button>
+    <% end %>
+  </th>
+  <% features.each do |feature| %>
+    <% cell = row.cell(feature["id"]) %>
+    <% source = summary ? cell.sources.first : cell.reports.first %>
+    <%= matrix_cell(cell, feature_id: feature["id"], link: source && report_path(source), provenance: summary,
+                    context: [ feature["name"], "#{row.model_name} · #{row.configuration.label}" ]) %>
+  <% end %>
+</tr>

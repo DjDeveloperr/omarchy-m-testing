@@ -1,22 +1,36 @@
 <% content_for :title, "Features" %>
 <h1>Features</h1>
 <p class="subtitle">Feature catalogue v<%= Catalogue.version %>: what each feature is expected to do per chip, in three layers.</p>
+<%= render "shared/filter_bar", filter: @filter, options: @options, path: features_path, keys: ReportFilter::FEATURE_KEYS, count: @matrix.runs_count %>
+<% if @filter.any? && @matrix.empty? %><p class="dim">No reports match these filters yet.</p><% end %>
 <% Catalogue::LAYERS.each do |layer| %>
   <%= card Catalogue::LAYER_WORDS[layer].downcase, id: "layer-#{layer}" do %>
-    <table class="list">
+    <table class="list feature-catalogue">
       <thead><tr><th>Feature</th><th>Checks</th><th>Tested on</th></tr></thead>
       <tbody>
         <% @features.fetch(layer, []).each do |feature| %>
           <% rows = @matrix.rows_for_feature(feature["id"]) %>
           <tr class="feature-row" id="feature-<%= feature["id"] %>">
-            <td><a href="<%= feature_path(feature["id"]) %>"><%= feature["name"] %></a></td>
+            <td><a href="<%= feature_path(feature["id"]) + query(@filter.to_params) %>"><%= feature["name"] %></a></td>
             <td class="dim"><%= Catalogue.checks_for(feature["id"]).size.nonzero? || "–" %></td>
             <td>
-              <% rows.each do |row| %>
-                <% cell = row.cell(feature["id"]) %>
-                <span class="chip-result <%= cell.css_class %>" title="<%= row.model_name %>, <%= row.configuration.label %>: <%= cell.summary %>"><%= ResultState.glyph(cell.display_state) %></span>
+              <% if rows.any? %>
+                <ul class="feature-results">
+                  <% rows.each do |row| %>
+                    <% cell = row.cell(feature["id"]) %>
+                    <% state = cell.display_state %>
+                    <% details = "#{row.model_name}, #{row.configuration.label}: #{ResultState.meaning(state)}. #{result_confidence(cell)}" %>
+                    <li class="feature-result" data-board="<%= row.configuration.board %>" data-build="<%= row.configuration.build_id %>">
+                      <a class="chip-result has-tooltip <%= cell.css_class %>" href="<%= model_path(row.configuration.board, anchor: "feature-#{feature["id"]}") %>" aria-label="<%= details %>" title="<%= details %>">
+                        <span aria-hidden="true"><%= ResultState.glyph(cell.display_state) %></span>
+                        <%= result_tooltip(cell, heading: row.model_name, lines: [ row.configuration.label ], klass: "cell-tooltip") %>
+                      </a>
+                    </li>
+                  <% end %>
+                </ul>
+              <% else %>
+                <span class="dim">–</span>
               <% end %>
-              <% if rows.empty? %><span class="dim">–</span><% end %>
             </td>
           </tr>
         <% end %>
@@ -24,4 +38,5 @@
     </table>
   <% end %>
 <% end %>
+<%= render "shared/legend" %>
 <p class="credit dim"><%= Catalogue.asahi_credit %></p>

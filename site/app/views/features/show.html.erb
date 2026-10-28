@@ -1,25 +1,47 @@
 <% content_for :title, @feature["name"] %>
+<% content_for :head do %><%= javascript_include_tag "model_results", defer: true %><% end %>
 <h1><%= @feature["name"] %></h1>
 <p class="subtitle"><span class="layer layer-<%= @feature["layer"] %>"><%= @feature["layer"] %></span> <%= Catalogue::LAYER_WORDS[@feature["layer"]] %><% if @feature["asahi_feature"] %> · builds on <a href="<%= feature_path(@feature["asahi_feature"]) %>"><%= Catalogue.feature_name(@feature["asahi_feature"]) %></a><% end %></p>
 <% if @feature["note"] %><p><%= @feature["note"] %></p><% end %>
+<%= render "shared/filter_bar", filter: @filter, options: @options, path: feature_path(@feature["id"]), keys: ReportFilter::FEATURE_KEYS, count: @matrix.runs_count %>
 
 <%= card "results" do %>
   <% if @rows.empty? %>
-    <p class="dim">No report has tested this yet<%= Catalogue.checks_for(@feature["id"]).empty? ? ": no check covers it in this version of omarchy-m-test" : "" %>.</p>
+    <p class="dim">No report<%= " matching these filters" if @filter.any? %> has tested this yet<%= Catalogue.checks_for(@feature["id"]).empty? ? ": no check covers it in this version of omarchy-m-test" : "" %>.</p>
   <% else %>
-    <table class="list">
-      <thead><tr><th>Mac</th><th>Stack / version</th><th></th><th>Machines</th></tr></thead>
-      <tbody>
-        <% @rows.each do |row| %>
-          <% cell = row.cell(@feature["id"]) %>
-          <tr class="result-row" data-board="<%= row.configuration.board %>" data-stack="<%= row.configuration.stack %>" data-build="<%= row.configuration.build_id %>">
-            <td><a href="<%= model_path(row.configuration.board) %>"><%= row.model_name %></a></td>
-            <td><%= row.configuration.label %></td>
-            <%= matrix_cell(cell, feature_id: @feature["id"], link: report_path(cell.reports.first)) %>
-            <td class="summary"><%= cell.summary %></td>
+    <table class="list feature-result-table">
+      <thead><tr><th>Mac · stack</th><th></th><th>Machines</th><th>Last tested</th></tr></thead>
+      <% @rows.each do |row| %>
+        <% cell = row.cell(@feature["id"]) %>
+        <% latest = cell.sources.first %>
+        <% builds = @history.fetch([ row.configuration.board, row.configuration.stack ], []) %>
+        <% history_id = "builds-#{row.configuration.board}-#{row.configuration.stack}" %>
+        <tbody>
+          <tr class="result-summary" data-board="<%= row.configuration.board %>" data-stack="<%= row.configuration.stack %>">
+            <td>
+              <a href="<%= model_path(row.configuration.board) %>"><%= row.model_name %></a>
+              <span class="dim"><%= row.configuration.stack_words %></span>
+              <button class="model-toggle" type="button" hidden aria-expanded="true" aria-controls="<%= history_id %>" data-build-count="<%= builds.size %>">Hide builds (<%= builds.size %>)</button>
+            </td>
+            <%= matrix_cell(cell, feature_id: @feature["id"], link: latest && report_path(latest), provenance: true,
+                            context: [ @feature["name"], "#{row.model_name} · #{row.configuration.release_label}" ]) %>
+            <td class="summary"><%= feature_result_words(cell) %></td>
+            <td class="dim"><% if latest %><%= link_to latest.created_at.utc.to_date, report_path(latest), title: "kernel #{latest.kernel}" %><% end %></td>
           </tr>
-        <% end %>
-      </tbody>
+        </tbody>
+        <tbody class="feature-history" id="<%= history_id %>">
+          <% builds.each do |build_row| %>
+            <% build_cell = build_row.cell(@feature["id"]) %>
+            <tr class="result-row" data-board="<%= build_row.configuration.board %>" data-stack="<%= build_row.configuration.stack %>" data-build="<%= build_row.configuration.build_id %>">
+              <td class="build-label"><%= build_row.configuration.version %><% if build_row.configuration.build %> <span class="dim">· build <%= build_row.configuration.build %></span><% end %></td>
+              <%= matrix_cell(build_cell, feature_id: @feature["id"], link: report_path(build_cell.reports.first),
+                              context: [ @feature["name"], "#{build_row.model_name} · #{build_row.configuration.label}" ]) %>
+              <td class="summary"><%= feature_result_words(build_cell) %></td>
+              <td class="dim"><%= link_to build_cell.reports.first.created_at.utc.to_date, report_path(build_cell.reports.first) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      <% end %>
     </table>
     <%= render "shared/legend" %>
   <% end %>

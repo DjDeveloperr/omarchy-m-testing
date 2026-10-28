@@ -1,9 +1,9 @@
-<%# locals: (rows:, features:) %>
+<%# locals: (rows:, features:, history: nil) %>
 <div class="matrix-scroll">
-  <table class="matrix">
+  <table class="matrix<%= " matrix-grouped" if history %>">
     <thead>
       <tr>
-        <th class="row-head" scope="col">Mac · stack / version · build</th>
+        <th class="row-head" scope="col"><%= history ? "Mac · stack · latest results" : "Mac · stack / version · build" %></th>
         <% features.each do |feature| %>
           <th class="feature-head layer-<%= feature["layer"] %>" scope="col">
             <a href="<%= feature_path(feature["id"]) %>" title="<%= feature["name"] %> (<%= Catalogue::LAYER_WORDS[feature["layer"]] %>)"><span><%= feature["name"] %></span></a>
@@ -11,20 +11,17 @@
         <% end %>
       </tr>
     </thead>
-    <tbody>
-      <% rows.each do |row| %>
-        <tr class="matrix-row" data-board="<%= row.configuration.board %>" data-stack="<%= row.configuration.stack %>" data-version="<%= row.configuration.version %>" data-build="<%= row.configuration.build_id %>">
-          <th class="row-head" scope="row">
-            <a href="<%= model_path(row.configuration.board) %>"><%= row.model_name %></a>
-            <span class="row-meta"><%= row.configuration.release_label %> · <%= pluralize(row.reports.size, "report") %></span>
-            <% if row.configuration.build %><span class="row-meta row-build">build <%= row.configuration.build %></span><% end %>
-          </th>
-          <% features.each do |feature| %>
-            <% cell = row.cell(feature["id"]) %>
-            <%= matrix_cell(cell, feature_id: feature["id"], link: cell.reports.first && report_path(cell.reports.first)) %>
-          <% end %>
-        </tr>
+    <% rows.each do |row| %>
+      <% builds = history&.fetch([ row.configuration.board, row.configuration.stack ], []) %>
+      <% history_id = "builds-#{row.configuration.board}-#{row.configuration.stack}" if history %>
+      <tbody>
+        <%= render "shared/matrix_row", row:, features:, summary: !!history, toggle_id: (history_id if history), builds_count: builds&.size || 0 %>
+      </tbody>
+      <% if history %>
+        <tbody class="matrix-history" id="<%= history_id %>">
+          <% builds.each do |build_row| %><%= render "shared/matrix_row", row: build_row, features:, history: true %><% end %>
+        </tbody>
       <% end %>
-    </tbody>
+    <% end %>
   </table>
 </div>

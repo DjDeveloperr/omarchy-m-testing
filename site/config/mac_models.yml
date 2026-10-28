@@ -1,0 +1,96 @@
+# Every Apple Silicon Mac the site tracks, grouped as people buy them, for the
+# bring-up table on /models (MacLineup). Boards come from the Asahi feature
+# tables' columns (catalogue/asahi_tables.py MODEL_COLUMNS); chip is the
+# catalogue's chip generation key.
+#
+# gpu and display are the bring-up state of the Omarchy default image on that
+# Mac: status works, pending or missing, with a short note (and optionally a
+# url, e.g. the pull request it waits on). Leave one out and the catalogue's
+# expected Asahi and Aurora states decide it. Test results on /models come
+# from the reports, never from here.
+- name: Mac mini (2020)
+  chip: m1
+  boards: [j274]
+- name: MacBook Pro 13" (2020)
+  chip: m1
+  boards: [j293]
+- name: MacBook Air (2020)
+  chip: m1
+  boards: [j313]
+- name: iMac (2021)
+  chip: m1
+  boards: [j456, j457]
+- name: MacBook Pro 14"/16" M1 Pro
+  chip: m1-pro-max-ultra
+  boards: [j314s, j316s]
+- name: MacBook Pro 14"/16" M1 Max
+  chip: m1-pro-max-ultra
+  boards: [j314c, j316c]
+- name: Mac Studio (2022)
+  chip: m1-pro-max-ultra
+  boards: [j375c, j375d]
+- name: MacBook Air 13" (2022)
+  chip: m2
+  boards: [j413]
+- name: MacBook Air 15" (2023)
+  chip: m2
+  boards: [j415]
+- name: MacBook Pro 13" (2022)
+  chip: m2
+  boards: [j493]
+- name: Mac mini (2023)
+  chip: m2
+  boards: [j473]
+- name: Mac mini M2 Pro (2023)
+  chip: m2-pro-max-ultra
+  boards: [j474s]
+- name: MacBook Pro 14"/16" M2 Pro
+  chip: m2-pro-max-ultra
+  boards: [j414s, j416s]
+- name: MacBook Pro 14"/16" M2 Max
+  chip: m2-pro-max-ultra
+  boards: [j414c, j416c]
+- name: Mac Studio (2023)
+  chip: m2-pro-max-ultra
+  boards: [j475c, j475d]
+- name: Mac Pro (2023)
+  chip: m2-pro-max-ultra
+  boards: [j180d]
+- name: MacBook Air 13"/15" M3
+  chip: m3
+  boards: [j613, j615]
+  gpu: { status: works }
+  display: { status: works }
+- name: MacBook Pro 14"/16" M3 Pro
+  chip: m3-pro
+  boards: [j514s, j516s]
+  gpu: { status: works, note: "in code; one tester's softpipe fallback is unexplained" }
+  display: { status: works }
+- name: MacBook Pro 16" M3 Max
+  chip: m3-max
+  boards: [j516c]
+  gpu: { status: pending, note: "yes, once the pending pull requests merge, but never yet run as a default" }
+  display: { status: pending }
+- name: MacBook Pro 14" M3 Max
+  chip: m3-max
+  boards: [j514c]
+  gpu: { status: missing, note: "no: the kernel GPU only matches the J516C" }
+  display: { status: missing, note: "opt-in only" }
+- name: MacBook Pro 14"/16" 30-core M3 Max (T6034)
+  chip: m3-max
+  boards: [j514m, j516m]
+  gpu: { status: missing, note: "no driver at all" }
+  display: { status: missing }
+- name: MacBook Pro 14" M3
+  chip: m3
+  boards: [j504]
+  gpu: { status: missing, note: "not in any default table" }
+  display: { status: missing }
+- name: iMac (2023)
+  chip: m3
+  boards: [j433, j434]
+  gpu: { status: missing, note: "not in any default table" }
+  display: { status: missing }
+- name: MacBook Neo (2026)
+  chip: a18-pro
+  boards: [j700]

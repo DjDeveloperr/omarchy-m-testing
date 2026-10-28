@@ -1,6 +1,8 @@
 class ModelsController < ApplicationController
   def index
-    @matrix = CompatibilityMatrix.visible
+    reports = Report.visible.to_a
+    @lineup = MacLineup.new(reports)
+    @matrix = CompatibilityMatrix.visible(reports:)
     @models = @matrix.rows.group_by { |row| row.configuration.board }
   end
 
