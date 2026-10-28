@@ -1,4 +1,5 @@
 <% content_for :title, "Omarchy on Apple Silicon" %>
+<% content_for :head do %><%= javascript_include_tag "model_results", defer: true %><% end %>
 <section class="hero">
   <%= image_tag "omarchy-logo.svg", alt: "Omarchy", class: "hero-logo", width: 96, height: 96 %>
   <div>
@@ -13,7 +14,8 @@
   <% if @matrix.empty? %>
     <p class="dim">No reports yet. Run <code>omarchy-m-test</code> on your Mac to add the first.</p>
   <% else %>
-    <%= render "shared/matrix", rows: @matrix.rows, features: @matrix.features %>
+    <p class="matrix-note">Latest results by model. Expand a row to see its builds, or <%= link_to "filter and compare results", matrix_path %>.</p>
+    <%= render "shared/matrix", rows: @matrix.rows, features: @matrix.features, history: @history %>
   <% end %>
   <%= render "shared/legend" %>
 <% end %>

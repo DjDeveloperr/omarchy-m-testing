@@ -24,7 +24,9 @@ class PagesTest < ActionDispatch::IntegrationTest
     assert_equal [ "–", "supported 7.1.12", "–" ], css_select("tr#feature-aop td.expected").map(&:text)
     assert_select "tr#feature-gpu td.expected.expected-yes", "linux-asahi"
     assert_select %(tr#feature-gpu td[data-state="works"])
-    assert_select "th.config-head", "converged 4.0.0 · build 99ace40.361571887310001 (linux-aurora 7.1.12.aurora2-2, omarchy-mac-boot 20260925-3)"
+    label = "converged 4.0.0 · build 99ace40.361571887310001 (linux-aurora 7.1.12.aurora2-2, omarchy-mac-boot 20260925-3)"
+    assert_select "th.config-head a[title=?][href=?]", label, "#configuration-1", "#1"
+    assert_select ".configuration-key li#configuration-1", label
     assert_select "tr.report-row", 2
     assert_select ".credit", /CC BY 3\.0/
   end
@@ -34,14 +36,24 @@ class PagesTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "the features page lists the catalogue by layer, with results where tested" do
+  test "the features page keeps compact results with accessible model and build details" do
     upload_report golden("m2-max-image2")
+    upload_report golden("m2-max-converged"), machine: "b"
+    upload_report golden("m1-pro-mx-mac"), machine: "c"
 
     get "/features"
     assert_response :success
     assert_select "#layer-asahi .card-title", "asahi hardware"
     assert_select "#layer-aurora tr#feature-usb4-displays"
     assert_select "#layer-omarchy tr#feature-notch-bar .chip-result.cell-unconfirmed"
+    assert_select "tr#feature-gpu .feature-result[data-board=j416c]", 2
+    assert_select "tr#feature-gpu .feature-result[data-board=j416c] .chip-result[href=?]", "/models/j416c#feature-gpu", 2
+    assert_select "tr#feature-gpu .feature-result[data-board=j416c] .cell-tooltip strong", "MacBook Pro (16-inch, M2 Max, 2023)"
+    assert_select "tr#feature-gpu .feature-result[data-board=j314s] .chip-result[href=?]", "/models/j314s#feature-gpu"
+    assert_select ".tested-model-name", 0
+    details = css_select("tr#feature-gpu .feature-result[data-board=j416c] .chip-result").map { |chip| chip["aria-label"] }
+    assert_equal 2, details.uniq.size
+    assert details.all? { |title| title.include?("linux-aurora") }
     assert_select "tr.feature-row", Catalogue.features.size
     assert_select ".credit", /CC BY 3\.0/
   end
@@ -56,7 +68,9 @@ class PagesTest < ActionDispatch::IntegrationTest
     assert_select "h1", "First-boot hardware setup"
     assert_select "tr.result-row", 2
     assert_select %(tr.result-row[data-board="j416c"] td[data-state="partial"])
-    assert_select %(tr.result-row[data-board="j416c"] .summary), "partial: 2 machines partial"
+    assert_select %(tr.result-row[data-board="j416c"] .summary), "2 machines partial"
+    assert_select %(tr.result-summary[data-board="j416c"] td[data-state="partial"])
+    assert_select "tr.result-summary", 2
     assert_select %(tr.result-row[data-board="j314s"] td[data-state="unconfirmed"])
     assert_equal [ "–", "supported 7.1.12", "supported" ], css_select("tr#chip-m2-pro-max-ultra td.expected").map(&:text)
     assert_select "code", "setup.first-boot-hardware"

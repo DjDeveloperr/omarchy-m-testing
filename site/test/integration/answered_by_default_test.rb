@@ -18,7 +18,7 @@ class AnsweredByDefaultTest < ActionDispatch::IntegrationTest
 
   def touchpad_cell
     get "/matrix"
-    css_select(%(tr.matrix-row[data-board="#{M2}"] td[data-feature="touchpad"])).sole
+    css_select(%(tr.model-summary[data-board="#{M2}"] td[data-feature="touchpad"])).sole
   end
 
   test "the report is accepted and its check shows as works (unconfirmed)" do

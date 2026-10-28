@@ -14,7 +14,7 @@ class TesterGatingTest < ActionDispatch::IntegrationTest
 
   def cell(board, feature)
     get "/matrix" unless response&.request&.path == "/matrix"
-    css_select(%(tr.matrix-row[data-board="#{board}"] td[data-feature="#{feature}"])).sole
+    css_select(%(tr.model-summary[data-board="#{board}"] td[data-feature="#{feature}"])).sole
   end
 
   def on_candidate(report, set = CANDIDATE) = report.tap { |r| r["system"]["candidate_set"] = set }

@@ -26,8 +26,10 @@ module Api
 
       def matrix_json
         filter = ReportFilter.new(params)
-        matrix = CompatibilityMatrix.visible(by_build: params[:group] != "release", filter:)
-        filter.any? ? { filters: filter.values, runs: matrix.runs_count, **matrix.as_json } : matrix.as_json
+        by_model = params[:group] == "model"
+        matrix = CompatibilityMatrix.visible(by_build: params[:group] != "release", by_model:, filter:)
+        json = filter.any? || by_model ? { filters: filter.values, runs: matrix.runs_count, **matrix.as_json } : matrix.as_json
+        by_model ? json.merge(group: "model") : json
       end
     end
   end

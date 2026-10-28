@@ -7,6 +7,7 @@
 #   build     a build (Build#matches?: its runtime id, label or words)
 #   set       the candidate set the build is on (Build#set)
 #   release   the Omarchy release (Report#omarchy_version, "4.0.0")
+#   kernel    the running kernel release (Report#kernel, uname -r)
 #   stack     the stack (CompatibilityMatrix::STACKS)
 #   model     a Mac model, by board ("j416c")
 #   gen       a chip generation ("m1": M1 and its Pro, Max and Ultra)
@@ -25,11 +26,13 @@
 #             check rows with this result (works, partial, fails,
 #             regression, gap, untested)
 class ReportFilter
-  RUN_KEYS = %w[build set release stack model gen chip soc runs tool from to].freeze
+  RUN_KEYS = %w[build set release kernel stack model gen chip soc runs tool from to].freeze
   RESULT_KEYS = %w[confirmed layer state].freeze
   KEYS = (RUN_KEYS + RESULT_KEYS).freeze
   # What a list of runs takes: which runs, and whether their counts leave out answers by default.
   LIST_KEYS = (RUN_KEYS + %w[confirmed]).freeze
+  # The feature catalogue narrows its result boxes to a model and/or build.
+  FEATURE_KEYS = %w[model build].freeze
 
   RUNS = %w[tester community].freeze
   # A filter state => the matrix states (ResultState) it picks.
@@ -40,7 +43,7 @@ class ReportFilter
   STATE_WORDS = { "works" => "works", "partial" => "partial", "fails" => "doesn't work", "regression" => "regression",
                   "gap" => "expected missing (gap)", "untested" => "not tested" }.freeze
   LABELS = {
-    "build" => "build", "set" => "candidate set", "release" => "release", "stack" => "stack", "model" => "model", "gen" => "generation",
+    "build" => "build", "set" => "candidate set", "release" => "release", "kernel" => "kernel", "stack" => "stack", "model" => "model", "gen" => "generation",
     "chip" => "chip", "soc" => "SoC", "runs" => "runs", "tool" => "tester version", "from" => "from", "to" => "to",
     "confirmed" => "results", "layer" => "layer", "state" => "state"
   }.freeze
@@ -80,6 +83,7 @@ class ReportFilter
       when "build" then report.build&.matches?(value)
       when "set" then report.build&.set == value
       when "release" then report.omarchy_version == value
+      when "kernel" then report.kernel == value
       when "stack" then report.stack == value
       when "model" then report.board == value
       when "gen" then Catalogue.chip_for_soc(report.soc).to_s.split("-").first == value

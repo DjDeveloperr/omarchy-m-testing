@@ -81,6 +81,92 @@ class FiltersTest < ActionDispatch::IntegrationTest
     assert_equal PRODUCTION.size, listed(runs: "all").size
   end
 
+  test "feature filters keep the catalogue and narrow the result boxes by model and build" do
+    params = { model: "j313", build: M1_AIR_BUILD }
+    expected = ids_where { |report| report["machine"]["board"] == "j313" && Report.new(body: report).build&.matches?(M1_AIR_BUILD) }
+
+    get "/features", params: params
+    assert_response :success
+    assert_equal expected.size, count
+    assert_equal %w[model build], css_select("form.filter-bar select").map { |select| select["name"] }
+    assert_select "form.filter-bar input", 0
+    assert_select "tr.feature-row", Catalogue.features.size
+    boxes = css_select(".feature-result")
+    assert boxes.any?
+    assert_equal [ "j313" ], boxes.map { |box| box["data-board"] }.uniq
+    assert_equal [ M1_AIR_BUILD ], boxes.map { |box| box["data-build"] }.uniq
+    assert_select ".filter-chip[data-filter=model][href=?]", "/features?build=#{M1_AIR_BUILD}"
+    assert_select ".filter-chip[data-filter=build][href=?]", "/features?model=j313"
+    assert_select ".filter-clear[href=?]", "/features"
+    assert_select "tr#feature-gpu td:first-child a[href=?]", "/features/gpu?build=#{M1_AIR_BUILD}&model=j313"
+
+    get "/features/gpu", params: params
+    assert_response :success
+    rows = css_select("tr.result-row")
+    assert rows.any?
+    assert_equal [ "j313" ], rows.map { |row| row["data-board"] }.uniq
+    assert_equal [ M1_AIR_BUILD ], rows.map { |row| row["data-build"] }.uniq
+    assert_select ".filter-chip[data-filter=build][href=?]", "/features/gpu?model=j313"
+    assert_select "select[name=model] option[value=j313][selected]"
+  end
+
+  test "feature build choices follow the model and distinguish variants of one runtime" do
+    get "/features", params: { model: "j416c" }
+    assert_response :success
+    builds = Report.visible.select { |report| report.board == "j416c" }.filter_map(&:build).uniq(&:words)
+    options = css_select("select[name=build] option").reject { |option| option["value"].blank? }
+    assert_equal builds.map(&:words).sort, options.map { |option| option["value"] }.sort
+    assert_select "select[name=model] option[value=j313]", 1, "the model picker still allows other models"
+    variants = builds.group_by(&:label).values.find { |group| group.size > 1 }
+    assert variants, "the fixtures include multiple kernels on one runtime"
+    variants.each do |build|
+      assert_select "select[name=build] option[value=?]", build.words, /#{Regexp.escape(build.words)}/
+    end
+  end
+
+  test "unknown feature filters show no results without hiding the catalogue" do
+    get "/features", params: { model: "unknown-model", build: "unknown-build" }
+    assert_response :success
+    assert_equal 0, count
+    assert_select "tr.feature-row", Catalogue.features.size
+    assert_select ".feature-result", 0
+    assert_select "select[name=model] option[value=unknown-model][selected]"
+    assert_select "select[name=build] option[value=unknown-build][selected]"
+    assert_select ".dim", /No reports match these filters yet/
+  end
+
+  test "the running kernel filter narrows pages and exports and keeps unknown choices" do
+    kernel = "7.1.12-2-11-ARCH"
+    expected = ids_where { |report| report["machine"]["kernel"] == kernel }
+    assert_equal expected, listed(kernel:).sort
+    assert_select "select[name=kernel] option[selected][value=?]", kernel
+    assert_select ".filter-chip[data-filter=kernel]", "kernel: #{kernel} ×"
+
+    get "/matrix", params: { group: "build", kernel: }
+    assert_equal expected.size, count
+    get "/api/v1/reports.json", params: { kernel: }
+    assert_equal({ "kernel" => kernel }, response.parsed_body["filters"])
+    assert_equal expected, response.parsed_body["reports"].map { |report| report["id"] }.sort
+    get "/api/v1/checks.csv", params: { kernel: }
+    assert_equal expected, parse_csv(response.body).drop(1).map(&:first).uniq.sort
+    get "/api/v1/matrix.json", params: { kernel: }
+    assert_equal expected.size, response.parsed_body["runs"]
+
+    assert_equal [], listed(kernel: "unknown-kernel")
+    assert_select "select[name=kernel] option[selected][value=unknown-kernel]"
+  end
+
+  test "kernel choices sort version numbers naturally and use the running kernel" do
+    report = Report.first.body.deep_dup
+    report["machine"]["kernel"] = "7.1.12-2-100-ARCH"
+    Report.create!(body: report, schema_version: report["schema_version"])
+    listed
+    choices = css_select("select[name=kernel] option").map { |option| option["value"] }.reject(&:empty?)
+    assert_equal "7.1.12-2-100-ARCH", choices.first
+    assert choices.index("7.1.12-2-11-ARCH") < choices.index("7.1.12-2-10-ARCH")
+    assert_equal [ "7.1.12-2-100-ARCH" ], listed(kernel: "7.1.12-2-100-ARCH").map { |id| Report.find_by!(public_id: id).kernel }
+  end
+
   test "filters combine with AND, show as removable chips, and clear goes back to everything" do
     ids = listed(gen: "m1", tool: "0.1.8", from: "2026-09-27")
     assert_equal ids_where { |r, e| r["machine"]["chip"].start_with?("M1") && r["tool"]["version"] == "0.1.8" && e["uploaded_at"] >= "2026-09-27" }, ids.sort
@@ -131,30 +217,30 @@ class FiltersTest < ActionDispatch::IntegrationTest
   end
 
   test "the matrix takes every run filter, with the count of runs behind it" do
-    get "/matrix", params: { gen: "m1" }
+    get "/matrix", params: { group: "build", gen: "m1" }
     assert_equal 6, count
     m1_boards = PRODUCTION.select { |e| e["report"]["machine"]["chip"].start_with?("M1") }.map { |e| e["report"]["machine"]["board"] }.uniq.sort
     assert_equal m1_boards, css_select("tr.matrix-row").map { |row| row["data-board"] }.uniq.sort
 
-    get "/matrix", params: { chip: "M3", tool: "0.1.8", to: "2026-09-28" }
+    get "/matrix", params: { group: "build", chip: "M3", tool: "0.1.8", to: "2026-09-28" }
     assert_equal [ "j613" ], css_select("tr.matrix-row").map { |row| row["data-board"] }
     assert_equal 1, count
 
     # The count is of the runs behind the rows shown: result filters leave rows out.
-    get "/matrix", params: { gen: "m1", state: "regression" }
+    get "/matrix", params: { group: "build", gen: "m1", state: "regression" }
     assert_select "tr.matrix-row", 0
     assert_equal 0, count
-    get "/matrix", params: { confirmed: "1" }
+    get "/matrix", params: { group: "build", confirmed: "1" }
     assert_equal css_select("tr.matrix-row .row-meta").sum { |meta| meta.text[/(\d+) reports?/, 1].to_i }, count
     assert count < PRODUCTION.size
 
-    get "/matrix", params: { from: "2026-09-29" }
+    get "/matrix", params: { group: "build", from: "2026-09-29" }
     assert_select "tr.matrix-row", 0
     assert_select ".card .dim", /No reports match these filters yet/
   end
 
   test "the matrix's layer filter keeps one layer's columns" do
-    get "/matrix", params: { layer: "aurora" }
+    get "/matrix", params: { group: "build", layer: "aurora" }
     layers = css_select("th.feature-head").map { |th| th["class"][/layer-(\w+)/, 1] }.uniq
     assert_equal [ "aurora" ], layers
     assert_equal Catalogue.tested_features.count { |f| f["layer"] == "aurora" }, css_select("th.feature-head").size
@@ -163,7 +249,7 @@ class FiltersTest < ActionDispatch::IntegrationTest
 
   test "the matrix's state filter keeps the rows and columns with a cell in that state" do
     %w[works fails gap untested].each do |state|
-      get "/matrix", params: { state: }
+      get "/matrix", params: { group: "build", state: }
       wanted = ReportFilter::STATES.fetch(state)
       rows = css_select("tr.matrix-row")
       rows.each do |row|
@@ -180,12 +266,12 @@ class FiltersTest < ActionDispatch::IntegrationTest
   end
 
   test "confirmed only hides the matrix cells community machines don't agree on" do
-    get "/matrix"
+    get "/matrix", params: { group: "build" }
     all = css_select("tr.matrix-row").size
     assert css_select(%(td[data-state="unconfirmed"])).any?, "most production runs are the only machine on their build: unconfirmed"
     assert_includes css_select("tr.matrix-row").map { |row| row["data-board"] }, "j613"
 
-    get "/matrix", params: { confirmed: "1" }
+    get "/matrix", params: { group: "build", confirmed: "1" }
     assert_select %(td[data-state="unconfirmed"]), 0
     assert css_select(%(td[data-state="hidden"].cell-hidden)).any?
     rows = css_select("tr.matrix-row")
@@ -197,12 +283,12 @@ class FiltersTest < ActionDispatch::IntegrationTest
     # A tester run colours cells on its own, so its row comes back.
     Tester.find_or_create_by!(login: "maralcbr")
     Report.find_by!(public_id: M3).update_columns(tester_login: "maralcbr")
-    get "/matrix", params: { confirmed: "1" }
+    get "/matrix", params: { group: "build", confirmed: "1" }
     assert css_select(%(tr.matrix-row[data-board="j613"] td[data-verified="tester"])).any?
   end
 
   test "the old matrix and reports links keep working, and keep the other filters" do
-    get "/matrix", params: { build: M1_AIR_BUILD }
+    get "/matrix", params: { group: "build", build: M1_AIR_BUILD }
     assert_equal [ M1_AIR_BUILD ], css_select("tr.matrix-row").map { |row| row["data-build"] }.uniq
     assert_select %(.filter-chip[data-filter="build"])
 
@@ -213,10 +299,10 @@ class FiltersTest < ActionDispatch::IntegrationTest
     assert_select %(form.filter-bar input[type="hidden"][name="group"][value="release"])
     assert_select ".filter-chip[href=?]", "/matrix?group=release"
     assert_select ".filter-clear[href=?]", "/matrix?group=release"
-    # The build links keep the other filters.
-    assert_select "#build-filters a[href=?]", "/matrix?gen=m2"
-    assert(css_select("#build-filters a[data-build]").all? { |a| a["href"].include?("gen=m2") })
-    assert_empty css_select("#build-filters a[data-build]").map { |a| a["data-build"] } - %w[1937418.362376005140001]
+    # Changing the grouping keeps the other filters.
+    assert_select ".matrix-view-switch a[href=?]", "/matrix?gen=m2&group=build", "Build"
+    assert_select ".matrix-view-switch a[href=?]", "/matrix?gen=m2&group=model", "Model"
+    assert_select ".matrix-view-switch a[aria-current=page]", "Release"
 
     assert_equal ids_where { |r| Report.new(body: r).build&.id == M1_AIR_BUILD }, listed(build: M1_AIR_BUILD).sort
   end

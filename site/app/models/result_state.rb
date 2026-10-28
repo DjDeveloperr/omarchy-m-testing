@@ -24,6 +24,18 @@ module ResultState
     "not-tested" => "not tested"
   }.freeze
 
+  # What a colour means, for tooltips.
+  MEANINGS = {
+    "works" => "works",
+    "partial" => "partly works: some checks pass and others don't, or machines disagree",
+    "regression" => "regression: a tester's earlier run on this model found it working",
+    "fails" => "doesn't work, although it should on this Mac",
+    "missing" => "expected missing: not supported yet by Aurora, Asahi or Omarchy",
+    "unknown" => "unknown hardware: nothing in the catalogue drives it",
+    "not-applicable" => "this Mac doesn't have the hardware",
+    "not-tested" => "not tested"
+  }.freeze
+
   GLYPHS = {
     "works" => "✓", "partial" => "~", "regression" => "✗", "fails" => "!", "missing" => "·",
     "unknown" => "?", "not-applicable" => "–", "not-tested" => " "
@@ -42,6 +54,7 @@ module ResultState
 
   def self.for_outcome(outcome) = OUTCOMES.fetch(outcome, "unknown")
   def self.words(state) = WORDS.fetch(state)
+  def self.meaning(state) = MEANINGS.fetch(state)
   def self.glyph(state) = GLYPHS.fetch(state)
 
   # One report's state for a feature, from the outcomes of the checks that test it.

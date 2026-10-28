@@ -341,6 +341,46 @@ a.badge-regression { text-decoration: none; }
 
 /* the matrix */
 
+.matrix-view-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 1.2rem 0 0.8rem;
+}
+
+.matrix-view-label { color: var(--fg-dim); font-size: 0.85rem; }
+
+.matrix-view-switch {
+  background: var(--deep);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: grid;
+  gap: 0.2rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 100%;
+  padding: 0.25rem;
+  width: 21rem;
+}
+
+.matrix-view-switch a {
+  align-items: center;
+  border-radius: var(--radius);
+  color: var(--fg-dim);
+  display: flex;
+  font-size: 0.9rem;
+  font-weight: 400;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0.4rem 0.75rem;
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition);
+}
+
+.matrix-view-switch a:hover { background: var(--storm); color: var(--white); }
+.matrix-view-switch a[aria-current="page"] { background: var(--green); color: var(--night); font-weight: 700; }
+.matrix-view-switch a:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
 .matrix-scroll {
   max-width: 100%;
   overflow-x: auto;
@@ -366,6 +406,12 @@ a.badge-regression { text-decoration: none; }
 
 .matrix tbody .row-head a { color: var(--white); }
 .row-meta { color: var(--comment); display: block; font-size: 0.85em; }
+.matrix-note { color: var(--fg-dim); font-size: 0.85rem; max-width: 70rem; }
+.matrix-grouped .row-head { max-width: 24rem; }
+.matrix-grouped .row-meta { overflow-wrap: anywhere; }
+.matrix-history .row-head { border-left: 1px solid var(--border); padding-left: 1rem; }
+.model-toggle { background: transparent; border: 0; color: var(--cyan); cursor: pointer; font: inherit; font-size: 0.85em; margin-top: 0.25rem; padding: 0; }
+.model-toggle:hover { color: var(--turquoise); }
 
 .feature-head {
   height: 11.5rem;
@@ -425,7 +471,42 @@ a.badge-regression { text-decoration: none; }
 .list td.cell { border-bottom-color: var(--night); }
 .features-table { width: auto; }
 .features-table td:first-child { min-width: 22rem; }
-.features-table .config-head { writing-mode: vertical-rl; transform: rotate(180deg); padding: 0 0 0.4rem; }
+.features-table .config-head { padding: 0.35rem 0.4rem; text-align: center; }
+.config-head a { color: var(--fg-dim); font-weight: 400; text-decoration: none; }
+.configuration-key { color: var(--fg-dim); font-size: 0.85rem; margin: 0 0 1rem; overflow-wrap: anywhere; padding-left: 2rem; }
+.configuration-key li { margin-bottom: 0.35rem; }
+.feature-note { color: var(--fg-dim); font-size: 0.85rem; }
+.feature-catalogue th:first-child { width: 46%; }
+.feature-catalogue th:nth-child(2) { width: 4rem; }
+.feature-results { display: flex; flex-wrap: wrap; gap: 0.3rem; list-style: none; margin: 0; padding: 0; position: relative; }
+.feature-results .chip-result { display: block; margin: 0; text-align: center; text-decoration: none; }
+.feature-results .chip-result:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.result-tooltip {
+  background: var(--storm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 0.3rem 1.2rem rgb(0 0 0 / 0.3);
+  color: var(--fg-dim);
+  display: grid;
+  font-size: 0.8rem;
+  font-weight: 400;
+  gap: 0.25rem;
+  left: 0;
+  max-width: 100%;
+  opacity: 0;
+  overflow-wrap: anywhere;
+  padding: 0.7rem 0.8rem;
+  pointer-events: none;
+  position: absolute;
+  right: auto;
+  text-align: left;
+  top: calc(100% + 0.4rem);
+  transition: opacity var(--transition);
+  visibility: hidden;
+  width: 26rem;
+  z-index: 5;
+}
+.result-tooltip strong { color: var(--white); }
 .expected-yes { color: var(--green); }
 .expected-no { color: var(--yellow); }
 .expected-none { color: var(--comment); }
@@ -574,6 +655,8 @@ form.inline { display: inline; }
   .button-install { margin-left: 0; }
   .check-id { min-width: 0; }
   .evidence { margin-left: 0; }
+  .matrix-view-label { width: 100%; }
+  .matrix-view-switch { width: 100%; }
   .matrix .row-head { min-width: 10rem; }
 }
 
@@ -614,9 +697,11 @@ form.inline { display: inline; }
   border: 1px solid var(--cyan);
   border-radius: var(--radius);
   color: var(--cyan);
+  max-width: 100%;
+  overflow-wrap: anywhere;
   padding: 0 0.45em;
   text-decoration: none;
-  white-space: nowrap;
+  white-space: normal;
 }
 .filter-chip:hover { border-color: var(--red); color: var(--red); }
 .filter-clear { color: var(--fg-dim); }
@@ -635,3 +720,42 @@ form.inline { display: inline; }
 .verdict-ready { color: var(--green); }
 .verdict-blocked { color: var(--red); }
 .verdict-waiting { color: var(--yellow); }
+
+/* The bring-up table on /models. */
+.lineup-table td { vertical-align: top; }
+.lineup-note { margin-left: 0.4em; }
+.lineup-tested { margin-top: 0.3em; font-size: 0.9em; color: var(--comment); }
+.lineup-row[data-tested="false"] td:first-child strong { color: var(--comment); }
+
+/* Feature page results: one row per model and stack, its builds below. */
+.feature-result-table td { vertical-align: middle; }
+.feature-result-table td.cell { width: 1.8em; min-width: 1.8em; padding: 0.15em 0; }
+.feature-result-table tbody + tbody { border-top: 0; }
+.feature-history td { font-size: 0.9em; }
+.feature-history td.build-label { padding-left: 1.5rem; border-left: 1px solid var(--border); }
+.feature-result-table .model-toggle { margin-left: 0.5em; }
+.feature-result-table td.summary { padding-left: 0.75rem; }
+.result-tooltip .tooltip-verdict { align-items: center; display: flex; font-weight: 700; gap: 0.5rem; }
+.result-tooltip .tooltip-verdict .swatch { flex: none; }
+
+/* Matrix cells: the tooltip is copied into one floating box (result_tooltips.js), clear of the scrolling table. */
+.cell-tooltip { display: none; }
+.result-tooltip.floating { left: 0; max-width: calc(100vw - 16px); opacity: 1; position: fixed; top: 0; visibility: visible; z-index: 20; }
+.result-tooltip.floating[hidden] { display: none; }
+/* The square a tooltip is about: a thick bright outline, and the tooltip's pointer touching it. */
+.cell.tooltip-target, .chip-result.tooltip-target { outline: 3px solid var(--white); outline-offset: 1px; position: relative; z-index: 2; }
+.result-tooltip.floating { overflow: visible; }
+.result-tooltip.floating::before {
+  background: inherit;
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  border-right: 0;
+  content: "";
+  height: 12px;
+  left: calc(var(--arrow-x, 24px) - 6px);
+  position: absolute;
+  top: -7px;
+  transform: rotate(45deg);
+  width: 12px;
+}
+.result-tooltip.floating[data-placement="above"]::before { bottom: -7px; top: auto; transform: rotate(225deg); }

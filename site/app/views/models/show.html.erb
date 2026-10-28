@@ -3,12 +3,19 @@
 <p class="subtitle"><%= @latest.chip %> · <%= Catalogue.chip_name(@chip) %> generation · SoC <%= @latest.soc %> · board <%= @latest.board %></p>
 
 <%= card "features" do %>
+  <ol class="configuration-key" aria-label="Tested builds">
+    <% @rows.each_with_index do |row, index| %>
+      <li id="configuration-<%= index + 1 %>"><%= row.configuration.label %></li>
+    <% end %>
+  </ol>
   <div class="matrix-scroll">
     <table class="list features-table">
       <thead>
         <tr>
-          <th>Feature</th><th>Asahi</th><th>Aurora</th><th>Omarchy</th>
-          <% @rows.each do |row| %><th class="config-head"><%= row.configuration.label %></th><% end %>
+          <th scope="col">Feature</th><th scope="col">Asahi</th><th scope="col">Aurora</th><th scope="col">Omarchy</th>
+          <% @rows.each_with_index do |row, index| %>
+            <th class="config-head" scope="col"><a href="#configuration-<%= index + 1 %>" title="<%= row.configuration.label %>" aria-label="Build <%= index + 1 %>: <%= row.configuration.label %>">#<%= index + 1 %></a></th>
+          <% end %>
         </tr>
       </thead>
       <tbody>
@@ -21,7 +28,8 @@
             <% end %>
             <% @rows.each do |row| %>
               <% cell = row.cell(feature["id"]) %>
-              <%= matrix_cell(cell, feature_id: feature["id"], link: cell.reports.first && report_path(cell.reports.first)) %>
+              <%= matrix_cell(cell, feature_id: feature["id"], link: cell.reports.first && report_path(cell.reports.first),
+                              context: [ feature["name"], "#{row.model_name} · #{row.configuration.label}" ]) %>
             <% end %>
           </tr>
         <% end %>

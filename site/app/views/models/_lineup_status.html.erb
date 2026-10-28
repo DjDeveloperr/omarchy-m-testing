@@ -1,0 +1,12 @@
+<% tested = row.boards.select { |board| board.result(area).tallies.any? } %>
+<td class="lineup-status" data-area="<%= area %>" data-status="<%= status.status %>" data-source="<%= status.source %>">
+  <%= state_badge(status.badge_state, label: status.words) %>
+  <% if status.note.present? %><span class="lineup-note"><%= status.url ? link_to(status.note, status.url) : status.note %></span><% end %>
+  <% if status.source == "catalogue" %><span class="dim" title="No bring-up note yet: the feature catalogue's expected Asahi and Aurora states">(catalogue)</span><% end %>
+  <% tested.each do |board| %>
+    <% cell = board.result(area) %>
+    <div class="lineup-tested" data-board="<%= board.board %>" data-state="<%= cell.display_state %>" title="<%= cell.summary %>">
+      tested on <%= board.board.upcase %>: <%= state_badge(cell.display_state) %><%= " (unconfirmed)" if cell.unconfirmed? %>
+    </div>
+  <% end %>
+</td>

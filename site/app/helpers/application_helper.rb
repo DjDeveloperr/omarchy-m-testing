@@ -29,10 +29,56 @@ module ApplicationHelper
   end
 
   # One matrix cell: a coloured square once machines agree or a tester confirms, an outlined hint while unconfirmed.
-  def matrix_cell(cell, feature_id:, link: nil)
+  # context: the lines that place it (model, stack, feature) for its tooltip (result_tooltip).
+  def matrix_cell(cell, feature_id:, link: nil, provenance: false, context: [])
     glyph = ResultState.glyph(cell.display_state)
-    content = link && cell.reports.any? ? link_to(glyph, link, "aria-label": cell.summary) : glyph
-    tag.td(content, class: cell.css_class, title: cell.summary, data: { feature: feature_id, state: cell.hidden? ? "hidden" : cell.state || "unconfirmed", verified: ("tester" if cell.tester?) })
+    title = cell.summary
+    data = { feature: feature_id, state: cell.hidden? ? "hidden" : cell.state || "unconfirmed", verified: ("tester" if cell.tester?) }
+    details = []
+    if provenance && (sources = cell.sources).any?
+      kernels = sources.map(&:kernel).uniq
+      title += " · kernels: #{kernels.join(', ')} · latest tested upload: #{uploaded_at(sources.first)}"
+      data.merge!(kernels:, tested_at: sources.first.created_at.utc.iso8601)
+      details << "Last tested #{uploaded_at(sources.first)} · kernel #{kernels.join(', ')}"
+    end
+    content = link && cell.reports.any? ? link_to(glyph, link, "aria-label": title) : glyph
+    tooltip = result_tooltip(cell, heading: context.first, lines: context.drop(1) + details, klass: "cell-tooltip")
+    tag.td(safe_join([ content, tooltip ]), class: [ cell.css_class, "has-tooltip" ], title:, data:)
+  end
+
+  # A result's tooltip: what its colour means, in that colour, how sure it is, then where it's from.
+  def result_tooltip(cell, heading: nil, lines: [], klass: nil)
+    state = cell.display_state
+    tag.span(class: [ "result-tooltip", klass ], "aria-hidden": true) do
+      safe_join([
+        tag.span(class: "tooltip-verdict badge-#{state}") do
+          safe_join([ tag.span(ResultState.glyph(state), class: "swatch #{cell.css_class.delete_prefix("cell ")}"), " ", ResultState.meaning(state).upcase_first ])
+        end,
+        tag.span(result_confidence(cell)),
+        (tag.strong(heading) if heading),
+        *lines.map { |line| tag.span(line, class: "dim") }
+      ].compact)
+    end
+  end
+
+  # How sure a result is, in plain words: tester-verified, agreed, or outlined until it's confirmed.
+  def result_confidence(cell)
+    if cell.hidden? then "Unconfirmed, hidden by the confirmed-only filter."
+    elsif cell.tallies.empty? then "No run tested it."
+    elsif cell.tester? then "Solid: verified by #{pluralize(cell.tester_machines, "tester machine")}."
+    elsif cell.confirmed? then "Solid: #{pluralize(cell.machines, "machine")} agree."
+    else
+      "Outlined: unconfirmed. #{cell.machines == 1 ? "Only 1 machine has" : "#{cell.machines} machines have"} reported this; " \
+        "it fills in once #{MatrixCell::AGREEMENT} machines agree or a tester confirms."
+    end
+  end
+
+  # A feature result in a few words: the machines' states, and whether a tester verified them or they're unconfirmed.
+  def feature_result_words(cell)
+    return "unconfirmed, hidden" if cell.hidden?
+    return "not tested" if cell.tallies.empty?
+
+    cell.counts + (cell.tester? ? " · tester-verified" : cell.unconfirmed? ? " · unconfirmed" : "")
   end
 
   # A catalogue state ("upstream 6.2", "linux-asahi", "supported 7.1.12") for one layer.

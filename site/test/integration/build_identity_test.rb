@@ -76,12 +76,12 @@ class BuildIdentityTest < ActionDispatch::IntegrationTest
   test "the matrix has a row per build, filters to one and can merge a release's builds" do
     store_production
 
-    get "/matrix"
+    get "/matrix", params: { group: "build" }
     assert_response :success
     m3 = css_select(%(tr.matrix-row[data-board="j613"])).sole
     assert_equal M3_BUILD, m3["data-build"]
     assert_select m3, ".row-build", "build #{BUILDS[M3]["words"]}"
-    assert_select "#build-filters a[data-build=?]", M3_BUILD
+    assert_select "select[name=build] option[value=?]", BUILDS[M3]["words"]
     builds = css_select("tr.matrix-row").map { |row| [ row["data-board"], row.at_css(".row-build").text ] }
     assert_equal builds.uniq, builds
     assert_equal BUILDS.values.map { |build| build["build"] }.uniq.sort, css_select("tr.matrix-row").map { |row| row["data-build"] }.uniq.sort
@@ -90,7 +90,7 @@ class BuildIdentityTest < ActionDispatch::IntegrationTest
                    "build 1937418.362376005140001 (linux-aurora 7.1.12.aurora2-10.90, omarchy-mac-boot 20260926-1)" ],
                  builds.select { |board, _| board == "j416c" }.map(&:last).sort
 
-    get "/matrix", params: { build: M1_AIR_BUILD }
+    get "/matrix", params: { group: "build", build: M1_AIR_BUILD }
     assert_equal [ M1_AIR_BUILD ], css_select("tr.matrix-row").map { |row| row["data-build"] }.uniq
 
     get "/matrix", params: { group: "release" }
@@ -104,7 +104,9 @@ class BuildIdentityTest < ActionDispatch::IntegrationTest
     store_production
 
     get "/models/j613"
-    assert_select "th.config-head", "converged 4.0.0 · build #{BUILDS[M3]["words"]}"
+    label = "converged 4.0.0 · build #{BUILDS[M3]["words"]}"
+    assert_select "th.config-head a[title=?]", label, "#1"
+    assert_select ".configuration-key li#configuration-1", label
     assert_select "tr.report-row td.build-cell[data-build=?]", M3_BUILD
 
     get "/features/gpu"
@@ -163,8 +165,8 @@ class BuildIdentityTest < ActionDispatch::IntegrationTest
     assert_select %(tr.build-row[data-set-source="image"] a.build-id), SET
     assert_select "tr#candidate-#{SET}"
 
-    get "/matrix"
-    assert_select "#build-filters a[data-build=?]", "1937418.362376005140001", SET
+    get "/matrix", params: { group: "build" }
+    assert_select "select[name=build] option[value=?]", words, "#{SET} (1)"
   end
 
   test "two images of one set are two builds: the image's package set and build time tell them apart" do
@@ -175,10 +177,10 @@ class BuildIdentityTest < ActionDispatch::IntegrationTest
     get "/candidates"
     assert_equal 3, css_select(%(tr.build-row[data-set="#{SET}"])).size
 
-    get "/matrix"
+    get "/matrix", params: { group: "build" }
     assert_equal 3, css_select(%(tr.matrix-row[data-board="j416c"])).size
     Report.all.each do |report|
-      get "/matrix", params: { build: report.build.words }
+      get "/matrix", params: { group: "build", build: report.build.words }
       assert_select "tr.matrix-row", 1
       get "/reports", params: { build: report.build.words }
       assert_equal [ "report-#{report.public_id}" ], css_select("tr.report-row").map { |row| row["id"] }

@@ -2,11 +2,6 @@
   <% %w[works partial regression fails missing unknown not-tested].each do |state| %>
     <li><span class="swatch cell-<%= state %>"><%= ResultState.glyph(state) %></span> <%= ResultState.words(state) %></li>
   <% end %>
-  <li><span class="swatch cell-works cell-tester"><%= ResultState.glyph("works") %></span> tester-verified</li>
-  <li><span class="swatch cell-unconfirmed cell-hint-works"><%= ResultState.glyph("works") %></span> community, unconfirmed</li>
+  <li><span class="swatch cell-unconfirmed cell-hint-works"><%= ResultState.glyph("works") %></span> outlined: unconfirmed</li>
 </ul>
-<p class="legend-note">
-  Community reports show up right away, outlined. A cell takes its colour once <%= MatrixCell::AGREEMENT %> or more different machines agree, or at once from a tester's run (framed).
-  Orange means it doesn't work although it should on that Mac; red means it's a regression: a tester's earlier run on the same model and stack found it working.
-  Blue means it isn't supported yet by Aurora, Asahi or Omarchy.
-</p>
+<p class="legend-note">Solid once <%= MatrixCell::AGREEMENT %> machines agree or a tester confirms. Hover a square for details.</p>
