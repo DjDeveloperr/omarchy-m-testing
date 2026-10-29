@@ -155,6 +155,19 @@ class GoldenInventoryTest(unittest.TestCase):
             self.assertFalse(node.unclaimed)
         self.assertTrue(Node(("apple,t8140-dart",), "okay", "unbound").unclaimed)
 
+    def test_the_sep_is_unclaimed_only_when_the_kernel_has_no_on_request_module_for_it(self):
+        # apple-sep has no module alias: Omarchy loads it when Touch ID is turned on (the Touch ID section checks it).
+        from omarchy_m_test.inventory import Node, _mark_opt_in, _state
+        sep, dart = Node(("apple,sep",), "okay", "unbound"), Node(("apple,t8140-dart",), "okay", "unbound")
+        for config, opt_in in (({"CONFIG_APPLE_SEP": "m"}, True), ({"CONFIG_APPLE_SEP": "y"}, False), ({}, False), (None, False)):
+            with self.subTest(config=config):
+                marked_sep, marked_dart = _mark_opt_in([sep, dart], config)
+                self.assertEqual((marked_sep.opt_in, marked_sep.unclaimed), (opt_in, not opt_in))
+                self.assertEqual(_state(marked_sep), "opt-in" if opt_in else "unbound")
+                self.assertTrue(marked_dart.unclaimed)
+        bound = _mark_opt_in([Node(("apple,sep",), "okay", "bound")], {"CONFIG_APPLE_SEP": "m"})[0]
+        self.assertEqual(_state(bound), "bound")
+
     def test_the_m2_max_on_the_converged_image_has_a_driver_for_every_node(self):
         rec = json.loads(open(os.path.join(HERE, "recordings", "m2-max-converged.json"), encoding="utf-8").read())
         rec["files"][f"{rec['env']['HOME']}/.local/state/omarchy-m-test/checkpoint.json"] = None
