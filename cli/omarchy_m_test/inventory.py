@@ -64,6 +64,9 @@ SKIPPED_SUBTREES = ("/cpus", "/chosen", "/reserved-memory")
 CONTAINERS = frozenset({"simple-bus", "simple-mfd", "simple-pm-bus", "syscon"})
 # Nodes whose device no driver binds by design (seen unbound on the M1 Pro, 2026-09-27).
 UNBOUND_BY_DESIGN = frozenset({"apple,cluster-cpufreq", "arm,armv8-timer", "u-boot,sysinfo-smbios"})
+# Apple's CPU frequency clusters by SoC: newer device trees name only the SoC's own cluster compatible (the
+# MacBook Neo's t8140) or an older SoC's, without apple,cluster-cpufreq.
+UNBOUND_BY_DESIGN_PATTERN = re.compile(r"apple,t[0-9]{4}-cluster-cpufreq")
 
 LOG_LINES_PER_CHECK = 20
 EVIDENCE_DIFFERENCES = 40
@@ -108,7 +111,8 @@ class Node:
 
     @property
     def unbound_by_design(self) -> bool:
-        return bool(UNBOUND_BY_DESIGN.intersection(self.compatibles))
+        return bool(UNBOUND_BY_DESIGN.intersection(self.compatibles)) or any(
+            UNBOUND_BY_DESIGN_PATTERN.fullmatch(compatible) for compatible in self.compatibles)
 
 
 @dataclass
